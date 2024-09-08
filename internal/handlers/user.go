@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"go-todo/internal/database"
 	"go-todo/internal/models"
 	"io"
 	"log"
@@ -42,12 +44,42 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: save to database
-	log.Printf("Registered User: %+v", user)
+	// validate if email already exists in DB
+	var existingUserID int
+	err = database.DB.QueryRow("SELECT id FROM users WHERE email = ?", user.Email).Scan(&existingUserID)
+	if err != nil && err != sql.ErrNoRows {
+		http.Error(w, "Error checking email existence", http.StatusInternalServerError)
+		return
+	}
+	if existingUserID != 0 {
+		http.Error(w, "Email already exists", http.StatusConflict)
+		return
+	}
+
+	// hash the password
+	err = user.HashUserPassword()
+	if err != nil {
+		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		return
+	}
+
+	// insert the user into the database
+	_, err = database.DB.Exec("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", user.Name, user.Email, user.Password)
+	if err != nil {
+		http.Error(w, "Error inserting user into database", http.StatusInternalServerError)
+		return
+	}
 
 	// Send success response
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User registered successfully"))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "User created successfully, now login.",
+		"user": map[string]string{
+			"email": user.Email,
+			"name":  user.Name,
+		},
+	})
 }
 
 func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,10 +100,16 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Retrieve user from database
-	user := models.User{
-		Email:    loginRequest.Email,
-		Password: "$2a$10$5puhOzuMoavMyZ43GpLvNe8ZPyNkwctMbRywE9vNVZ.lDOYGMru9y",
+	// read the user from database
+	var user models.User
+	err := database.DB.QueryRow("SELECT id, name, email, password FROM users WHERE email = ?", loginRequest.Email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		} else {
+			http.Error(w, "Error retrieving user from database", http.StatusInternalServerError)
+		}
+		return
 	}
 
 	// Check if the password is correct
@@ -90,7 +128,7 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("JWT_SECRET not set in environment")
 	}
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
 		http.Error(w, "Could not generate token", http.StatusInternalServerError)
 		return
@@ -98,7 +136,7 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Success response in JSON encoded map
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+	json.NewEncoder(w).Encode(map[string]string{"email": user.Email, "token": tokenString})
 }
 
 // ⇩⇩⇩⇩⇩ Utility Functions ⇩⇩⇩⇩⇩

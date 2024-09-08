@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-todo/internal/database"
 	"go-todo/internal/handlers"
 	"go-todo/internal/middleware"
 	"log"
@@ -17,10 +18,11 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	// init mux router
-	router := mux.NewRouter()
+	// initialize database
+	database.Initialize()
 
-	// middlewares
+	// initialize router and apply middleware
+	router := mux.NewRouter()
 	router.Use(middleware.ErrorHandlerMiddleware)
 
 	// test route
