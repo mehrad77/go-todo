@@ -47,6 +47,44 @@ func CreateTodoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(todo)
 }
 
+func GetAllTodoHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. get the user ID from the context
+	userID, ok := r.Context().Value("userID").(float64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 2. fetch all the todo from the database
+	rows, err := database.DB.Query("SELECT id, title, completed FROM todos WHERE user_id = ?", userID)
+	if err != nil {
+		http.Error(w, "Error fetching todos from database", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var todos []models.Todo
+	for rows.Next() {
+		var todo models.Todo
+		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Completed); err != nil {
+			http.Error(w, "Error reading todo data", http.StatusInternalServerError)
+			return
+		}
+		todo.UserID = userID // ensure UserID is set
+		todos = append(todos, todo)
+	}
+
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error iterating over todos", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. respond with the fetched todo
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(todos)
+}
+
 func GetTodoHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. get the ID from the URL
 	vars := mux.Vars(r)

@@ -36,7 +36,7 @@ func main() {
 	todoRouter := router.PathPrefix("/todos").Subrouter()
 	todoRouter.Use(middleware.AuthMiddleware)
 	todoRouter.HandleFunc("", handlers.CreateTodoHandler).Methods("POST")
-	// todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET")
+	todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET")
 	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
 	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT")
 	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE")
