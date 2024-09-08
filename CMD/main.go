@@ -15,6 +15,7 @@ import (
 func main() {
 	// Check if the environment is development
 	env := os.Getenv("GO_ENV")
+	log.Printf("Environment is %s", env)
 	if env == "development" {
 		// Load environment variables from .env file only in development
 		err := godotenv.Load()
