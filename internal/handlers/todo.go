@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"go-todo/internal/database"
 	"go-todo/internal/models"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -19,8 +20,18 @@ func CreateTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: 2. insert into database
-	log.Printf("Created Todo: %+v", todo)
+	// 2. insert the todo into database
+	result, err := database.DB.Exec("INSERT INTO todos (user_id, title, completed) VALUES (?, ?, ?)", todo.UserID, todo.Title, todo.Completed)
+	if err != nil {
+		http.Error(w, "Error inserting todo into database", http.StatusInternalServerError)
+		return
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		http.Error(w, "Error retrieving inserted todo ID", http.StatusInternalServerError)
+		return
+	}
+	todo.ID = int(id)
 
 	// 3. respond with the created todo
 	w.Header().Set("Content-Type", "application/json")
@@ -37,8 +48,17 @@ func GetTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: 2. fetch the todo from the database
-	todo := models.Todo{ID: id, UserID: 1, Title: "Sample Todo", Completed: false}
+	// 2. fetch the todo from the database
+	var todo models.Todo
+	err = database.DB.QueryRow("SELECT id, user_id, title, completed FROM todos WHERE id = ?", id).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Todo not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error fetching todo from database", http.StatusInternalServerError)
+		}
+		return
+	}
 
 	// 3. respond with the fetched todo
 	w.Header().Set("Content-Type", "application/json")
@@ -60,11 +80,14 @@ func UpdateTodoHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	todo.ID = id    // Ensure ID is preserved
-	todo.UserID = 1 // Ensure User ID is preserved
+	todo.ID = id // ensure ID is preserved
 
-	// TODO 3. update the todo in the database
-	log.Printf("Updated Todo: %+v", todo)
+	// 3. update the todo in the database
+	_, err = database.DB.Exec("UPDATE todos SET title = ?, completed = ? WHERE id = ?", todo.Title, todo.Completed, todo.ID)
+	if err != nil {
+		http.Error(w, "Error updating todo in database", http.StatusInternalServerError)
+		return
+	}
 
 	// 4. respond with the updated todo
 	w.Header().Set("Content-Type", "application/json")
@@ -80,8 +103,12 @@ func DeleteTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO 2. delete the todo from the database
-	log.Printf("Deleted Todo ID: %d", id)
+	// 2. delete the todo from the database
+	_, err = database.DB.Exec("DELETE FROM todos WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, "Error deleting todo from database", http.StatusInternalServerError)
+		return
+	}
 
 	// 3. respond with no content
 	w.WriteHeader(http.StatusNoContent)
