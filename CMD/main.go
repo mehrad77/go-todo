@@ -6,19 +6,23 @@ import (
 	"go-todo/internal/middleware"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	// load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		// log verbos error and exit if .env file is not found
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	// Check if the environment is development
+	env := os.Getenv("GO_ENV")
+	if env == "development" {
+		// Load environment variables from .env file only in development
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 
+	}
 	// initialize database
 	database.Initialize()
 
