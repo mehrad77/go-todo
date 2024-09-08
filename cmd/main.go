@@ -13,8 +13,9 @@ func main() {
 
 	router.HandleFunc("/hello", HelloHandler).Methods("GET")
 
-	// User registration route
+	// User routes
 	router.HandleFunc("/register", handlers.RegisterUserHandler).Methods("POST")
+	router.HandleFunc("/login", handlers.LoginUserHandler).Methods("POST")
 
 	log.Println("Starting the server on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
