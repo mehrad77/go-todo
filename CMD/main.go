@@ -15,7 +15,8 @@ func main() {
 	// load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		// log verbos error and exit if .env file is not found
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	// initialize database
