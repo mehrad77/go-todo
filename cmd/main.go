@@ -17,6 +17,12 @@ func main() {
 	router.HandleFunc("/register", handlers.RegisterUserHandler).Methods("POST")
 	router.HandleFunc("/login", handlers.LoginUserHandler).Methods("POST")
 
+	// To-do routes
+	router.HandleFunc("/todos", handlers.CreateTodoHandler).Methods("POST")
+	router.HandleFunc("/todos/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
+	router.HandleFunc("/todos/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT")
+	router.HandleFunc("/todos/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE")
+
 	log.Println("Starting the server on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
