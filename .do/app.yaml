@@ -1,0 +1,6 @@
+name: go-todo
+services:
+- name: web
+  github:
+    repo: mehrad77/go-todo
+    branch: main
