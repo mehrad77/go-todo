@@ -6,12 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
-
-var jwtSecret = []byte("your-secret-key") // Replace with a secure key
 
 func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	// init a new variable with the User struct
@@ -31,10 +31,14 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validation
+	// validations
 	if user.Email == "" || user.Password == "" || user.Name == "" {
 		log.Printf("========[USER]==>", "%+v", user)
 		http.Error(w, "Missing fields", http.StatusBadRequest)
+		return
+	}
+	if !isValidEmail(user.Email) {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
 		return
 	}
 
@@ -81,6 +85,10 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		"email": user.Email,
 		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 	})
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatalf("JWT_SECRET not set in environment")
+	}
 
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
@@ -91,4 +99,11 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Success response in JSON encoded map
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+}
+
+// ⇩⇩⇩⇩⇩ Utility Functions ⇩⇩⇩⇩⇩
+
+func isValidEmail(email string) bool {
+	// Simple regex for email validation
+	return regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`).MatchString(email)
 }
