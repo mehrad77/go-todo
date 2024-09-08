@@ -20,7 +20,15 @@ func CreateTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. insert the todo into database
+	// 2. get the user ID from the context
+	userID, ok := r.Context().Value("userID").(float64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	todo.UserID = userID
+
+	// 3. insert the todo into database
 	result, err := database.DB.Exec("INSERT INTO todos (user_id, title, completed) VALUES (?, ?, ?)", todo.UserID, todo.Title, todo.Completed)
 	if err != nil {
 		http.Error(w, "Error inserting todo into database", http.StatusInternalServerError)
@@ -33,7 +41,7 @@ func CreateTodoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	todo.ID = int(id)
 
-	// 3. respond with the created todo
+	// 4. respond with the created todo
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(todo)
@@ -48,9 +56,16 @@ func GetTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. fetch the todo from the database
+	// 2. get the user ID from the context
+	userID, ok := r.Context().Value("userID").(float64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 3. fetch the todo from the database
 	var todo models.Todo
-	err = database.DB.QueryRow("SELECT id, user_id, title, completed FROM todos WHERE id = ?", id).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed)
+	err = database.DB.QueryRow("SELECT id, user_id, title, completed FROM todos WHERE id = ? AND user_id = ?", id, userID).Scan(&todo.ID, &todo.UserID, &todo.Title, &todo.Completed)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -60,7 +75,7 @@ func GetTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. respond with the fetched todo
+	// 4. respond with the fetched todo
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(todo)
 }
@@ -82,8 +97,16 @@ func UpdateTodoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	todo.ID = id // ensure ID is preserved
 
+	// 3. get the user ID from the context
+	userID, ok := r.Context().Value("userID").(float64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	todo.UserID = userID
+
 	// 3. update the todo in the database
-	_, err = database.DB.Exec("UPDATE todos SET title = ?, completed = ? WHERE id = ?", todo.Title, todo.Completed, todo.ID)
+	_, err = database.DB.Exec("UPDATE todos SET title = ?, completed = ? WHERE id = ? AND user_id = ?", todo.Title, todo.Completed, todo.ID, todo.UserID)
 	if err != nil {
 		http.Error(w, "Error updating todo in database", http.StatusInternalServerError)
 		return
@@ -103,13 +126,20 @@ func DeleteTodoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. delete the todo from the database
-	_, err = database.DB.Exec("DELETE FROM todos WHERE id = ?", id)
+	// 2. retrieve user ID from context
+	userID, ok := r.Context().Value("userID").(float64)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 3. delete the todo from the database
+	_, err = database.DB.Exec("DELETE FROM todos WHERE id = ? AND user_id = ?", id, userID)
 	if err != nil {
 		http.Error(w, "Error deleting todo from database", http.StatusInternalServerError)
 		return
 	}
 
-	// 3. respond with no content
+	// 4. respond with no content
 	w.WriteHeader(http.StatusNoContent)
 }

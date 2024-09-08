@@ -120,8 +120,9 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate a JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"user_id": user.ID,
+		"email":   user.Email,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {

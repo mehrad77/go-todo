@@ -29,14 +29,17 @@ func main() {
 	router.HandleFunc("/hello", HelloHandler).Methods("GET")
 
 	// User routes
-	router.HandleFunc("/register", handlers.RegisterUserHandler).Methods("POST")
-	router.HandleFunc("/login", handlers.LoginUserHandler).Methods("POST")
+	router.HandleFunc("/user/register", handlers.RegisterUserHandler).Methods("POST")
+	router.HandleFunc("/user/login", handlers.LoginUserHandler).Methods("POST")
 
-	// To-do routes
-	router.HandleFunc("/todos", handlers.CreateTodoHandler).Methods("POST")
-	router.HandleFunc("/todos/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
-	router.HandleFunc("/todos/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT")
-	router.HandleFunc("/todos/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE")
+	// To-do routes with authentication middleware
+	todoRouter := router.PathPrefix("/todos").Subrouter()
+	todoRouter.Use(middleware.AuthMiddleware)
+	todoRouter.HandleFunc("", handlers.CreateTodoHandler).Methods("POST")
+	// todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE")
 
 	// start the server
 	log.Println("Starting the server on :8080")
