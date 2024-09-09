@@ -75,14 +75,6 @@ You can create a new to do item with this. This endpoint gets two parameters, `t
 
 This endpoint will list all the To Do items this user has
 
-**Request Body**:
-```
-{
-  "title": "Create a todo app",
-  "completed": false
-}
-```
-
 **Response**:
 ```
 [
