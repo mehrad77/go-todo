@@ -44,6 +44,7 @@ func main() {
 	// To-do routes with authentication middleware
 	todoRouter := router.PathPrefix("/todos").Subrouter()
 	todoRouter.Use(middleware.AuthMiddleware)
+	todoRouter.Use(middleware.CORSMiddleware)
 	todoRouter.HandleFunc("", handlers.CreateTodoHandler).Methods("POST")
 	todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET")
 	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
