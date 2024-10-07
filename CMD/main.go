@@ -30,6 +30,7 @@ func main() {
 
 	// initialize router and apply middleware
 	router := mux.NewRouter()
+	router.Use(middleware.CORSMiddleware)
 	router.Use(middleware.ErrorHandlerMiddleware)
 
 	// Add CORS middleware to allow all origins (for development purposes)
