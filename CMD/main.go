@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	gorillahandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -33,32 +32,27 @@ func main() {
 	router.Use(middleware.CORSMiddleware)
 	router.Use(middleware.ErrorHandlerMiddleware)
 
-	// Add CORS middleware to allow all origins (for development purposes)
-
 	// test route
-	router.HandleFunc("/hello", HelloHandler).Methods("GET")
+	router.HandleFunc("/hello", HelloHandler).Methods("GET", "OPTIONS")
 
 	// User routes
-	router.HandleFunc("/user/register", handlers.RegisterUserHandler).Methods("POST")
-	router.HandleFunc("/user/login", handlers.LoginUserHandler).Methods("POST")
+	router.HandleFunc("/user/register", handlers.RegisterUserHandler).Methods("POST", "OPTIONS")
+	router.HandleFunc("/user/login", handlers.LoginUserHandler).Methods("POST", "OPTIONS")
 
 	// To-do routes with authentication middleware
 	todoRouter := router.PathPrefix("/todos").Subrouter()
 	todoRouter.Use(middleware.AuthMiddleware)
-	todoRouter.HandleFunc("", handlers.CreateTodoHandler).Methods("POST")
-	todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET")
-	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET")
-	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT")
-	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE")
+	todoRouter.HandleFunc("", handlers.CreateTodoHandler).Methods("POST", "OPTIONS")
+	todoRouter.HandleFunc("", handlers.GetAllTodoHandler).Methods("GET", "OPTIONS")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.GetTodoHandler).Methods("GET", "OPTIONS")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.UpdateTodoHandler).Methods("PUT", "OPTIONS")
+	todoRouter.HandleFunc("/{id:[0-9]+}", handlers.DeleteTodoHandler).Methods("DELETE", "OPTIONS")
 
-	// Where ORIGIN_ALLOWED is like `scheme://dns[:port]`, or `*` (insecure)
-	headersOk := gorillahandlers.AllowedHeaders([]string{"*"})
-	originsOk := gorillahandlers.AllowedOrigins([]string{"*"})
-	methodsOk := gorillahandlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	router.Use(mux.CORSMethodMiddleware(router))
 
 	// start the server
 	log.Println("Starting the server on :8080")
-	if err := http.ListenAndServe(":8080", gorillahandlers.CORS(originsOk, headersOk, methodsOk)(router)); err != nil {
+	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
 	}
 }
